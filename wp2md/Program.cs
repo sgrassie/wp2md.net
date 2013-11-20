@@ -10,6 +10,8 @@ namespace wp2md
     {
         static void Main(string[] args)
         {
+
+            Console.ReadKey();
         }
     }
 }
