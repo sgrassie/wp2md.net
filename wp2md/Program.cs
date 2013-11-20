@@ -11,6 +11,7 @@ namespace wp2md
     {
         static void Main(string[] args)
         {
+            Action<string> logger = msg => Console.WriteLine(msg);
             var parser = CreateArgsParser();
             var results = parser.Parse(args);
 
@@ -20,7 +21,7 @@ namespace wp2md
                 Environment.Exit(-2);
             }
 
-            var options = parser.Object;
+            new Application(logger).Execute(parser.Object);
         }
 
         static FluentCommandLineBuilder<Options> CreateArgsParser()
@@ -43,16 +44,10 @@ namespace wp2md
                 .WithDescription("The output folder for generated files.");
 
             parser
-                .Setup(arg => arg.LogToFile)
-                .As('l', "logfile")
-                .SetDefault(string.Empty)
-                .WithDescription("If given, logs to the specified file, instead of outputting to console");
-
-            parser
-                .Setup(arg => arg.Verbosity)
-                .As('v', "verbosity")
-                .SetDefault(0)
-                .WithDescription("Log verbosity level. 0 for no logging, 1 for only vaguely interesting stuff, 2 for... everything");
+                .Setup(arg => arg.Verbose)
+                .As('v', "verbose")
+                .SetDefault(false)
+                .WithDescription("Whether to output log messages or not. (All or nothing).");
 
             return parser;
         }
@@ -62,9 +57,7 @@ namespace wp2md
     {
         public string SourceFile { get; set; }
 
-        public string LogToFile { get; set; }
-
-        public int Verbosity { get; set; }
+        public bool Verbose { get; set; }
 
         public string OutputPath { get; set; }
     }
