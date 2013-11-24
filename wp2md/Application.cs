@@ -21,7 +21,6 @@ namespace wp2md
         private Options _options;
         private Action<string> _logger;
 
-
         public Application(Action<string> logger)
         {
             _logger = logger;
