@@ -41,8 +41,7 @@ namespace wp2md
             if(File.Exists(_options.SourceFile))
             {
                 var document = XDocument.Load(_options.SourceFile, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-                var posts = GetPosts(document);
-                var pages = GetPages(document);
+                new Parser().Parse(document);
             }
             else
             {
@@ -53,74 +52,60 @@ namespace wp2md
             }
         }
 
-        private List<Item> GetPosts(XDocument document)
+        private Task ConvertToMarkdown(List<Item> posts)
         {
-            if (_options.Verbose) _logger("Loading posts...");
-            var posts = document.Root()
-                        .GetItemByType(PostType.Post)
-                        .WithoutStatus("draft")
-                        .SelectItems()
-                        .ToList();
-
-            if (_options.Verbose) _logger(string.Format("Found {0} posts.", posts.Count));
-            return posts;
-        }
-
-        private List<Item> GetPages(XDocument document)
-        {
-            if (_options.Verbose) _logger("Loading pages...");
-            var pages = document.Root().GetItemByType(PostType.Page).WithoutStatus("draft").SelectItems().ToList();
-
-            if (_options.Verbose) _logger(string.Format("Found {0} pages.", pages.Count));
-            return pages;
+            throw new NotImplementedException();
         }
     }
 
-    static class Extensions
+    public class Parser 
     {
+        private XDocument _document;
+        private IEnumerable<Item> _items;
         private static XNamespace excerpt = "http://wordpress.org/export/1.2/excerpt/";
         private static XNamespace content = "http://purl.org/rss/1.0/modules/content/";
         private static XNamespace dc = "http://purl.org/dc/elements/1.1/";
         private static XNamespace wp = "http://wordpress.org/export/1.2/";
 
-        public static IQueryable<XElement> Root(this XDocument document)
+        public void Parse(XDocument document)
         {
-            return document.Root.Element("channel").Elements("item").AsQueryable();
+            _document = document;
+
+            _items = (from item in _document.Root.Element("channel").Elements("item")
+                         select 
+                            new Item
+                            {
+                                Title = item.Element("title").Value,
+                                PublicationDate = ParseDateTime(item.Element("pubDate").Value),
+                                Author = item.Element(dc + "creator").Value,
+                                Guid = item.Element("guid").Value,
+                                Description = item.Element("description").Value,
+                                Content = item.Element(content + "encoded").Value,
+                                Id = Convert.ToInt32(item.Element(wp + "post_id").Value),
+                                PostDate = ParseDateTime(item.Element(wp + "post_date").Value),
+                                PostDateGmt = ParseDateTime(item.Element(wp + "post_date_gmt").Value),
+                                CommentStatus = item.Element(wp + "comment_status").Value,
+                                PingStatus = item.Element(wp + "ping_status").Value,
+                                PostName = item.Element(wp + "post_name").Value,
+                                PostParent = item.Element(wp + "post_parent").Value,
+                                PostType = item.Element(wp + "post_type").Value,
+                                Categories = item.Elements("category").Select(el => el.Value).ToList(),
+                                PostMeta = (from meta in item.Elements(wp + "postmeta")
+                                            select new Tuple<string, string>(meta.Element(wp + "meta_key").Value, meta.Element(wp + "meta_value").Value)
+                                           ).ToList()
+                            }).ToList();
         }
 
-        public static IQueryable<XElement> GetItemByType(this IQueryable<XElement> queryable, string postType)
+        private DateTime ParseDateTime(string date)
         {
-            return queryable.Where(item => item.Element(wp + "post_type").Value == postType);
-        }
-        public static IQueryable<XElement> WithoutStatus(this IQueryable<XElement> queryable, string status)
-        {
-            return queryable.Where(item => item.Element(wp + "status").Value != status);
-        }
-
-        public static IQueryable<Item> SelectItems(this IQueryable<XElement> items)
-        {
-            return items.Select(item =>
-                new Item
-                {
-                    Title = item.Element("title").Value,
-                    PublicationDate = DateTime.Parse(item.Element("pubDate").Value),
-                    Author = item.Element(dc + "creator").Value,
-                    Guid = item.Element("guid").Value,
-                    Description = item.Element("description").Value,
-                    Content = item.Element(content + "encoded").Value,
-                    Id = Convert.ToInt32(item.Element(wp + "post_id").Value),
-                    PostDate = DateTime.Parse(item.Element(wp + "post_date").Value),
-                    PostDateGmt = DateTime.Parse(item.Element(wp + "post_date_gmt").Value),
-                    CommentStatus = item.Element(wp + "comment_status").Value,
-                    PingStatus = item.Element(wp + "ping_status").Value,
-                    PostName = item.Element(wp + "post_name").Value,
-                    PostParent = item.Element(wp + "post_parent").Value,
-                    PostType = item.Element(wp + "post_type").Value,
-                    Categories = item.Elements("category").Select(el => el.Value).ToList(),
-                    PostMeta = (from meta in item.Elements(wp + "postmeta")
-                                select new Tuple<string, string>(meta.Element(wp + "meta_key").Value, meta.Element(wp + "meta_value").Value)
-                               ).ToList()
-                });
+            try
+            {
+                return DateTime.Parse(date);
+            }
+            catch(FormatException)
+            {
+                return DateTime.MinValue;
+            }
         }
     }
 }
