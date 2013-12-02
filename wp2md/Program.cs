@@ -53,7 +53,7 @@ namespace wp2md
         }
     }
 
-    class Options
+    public class Options
     {
         public string SourceFile { get; set; }
 

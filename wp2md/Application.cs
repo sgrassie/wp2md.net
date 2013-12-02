@@ -41,7 +41,9 @@ namespace wp2md
             if(File.Exists(_options.SourceFile))
             {
                 var document = XDocument.Load(_options.SourceFile, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-                new Parser().Parse(document);
+                var parser = new Parser(_options);
+                parser.Parse(document);
+                parser.VisitWith(new PostVisitor());
             }
             else
             {
@@ -51,27 +53,30 @@ namespace wp2md
                 Environment.Exit(-2);
             }
         }
-
-        private Task ConvertToMarkdown(List<Item> posts)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public class Parser 
     {
         private XDocument _document;
-        private IEnumerable<Item> _items;
         private static XNamespace excerpt = "http://wordpress.org/export/1.2/excerpt/";
         private static XNamespace content = "http://purl.org/rss/1.0/modules/content/";
         private static XNamespace dc = "http://purl.org/dc/elements/1.1/";
         private static XNamespace wp = "http://wordpress.org/export/1.2/";
 
+        public Parser(Options options)
+        {
+            this.Options = options;
+        }
+        
+        public Options Options { get; set; }
+
+        public IEnumerable<Item> Items { get; set; }
+
         public void Parse(XDocument document)
         {
             _document = document;
 
-            _items = (from item in _document.Root.Element("channel").Elements("item")
+            Items = (from item in _document.Root.Element("channel").Elements("item")
                          select 
                             new Item
                             {
@@ -94,6 +99,11 @@ namespace wp2md
                                             select new Tuple<string, string>(meta.Element(wp + "meta_key").Value, meta.Element(wp + "meta_value").Value)
                                            ).ToList()
                             }).ToList();
+        }
+
+        public void VisitWith(IVisitor visitor)
+        {
+            visitor.Visit(this);
         }
 
         private DateTime ParseDateTime(string date)

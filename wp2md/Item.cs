@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace wp2md
 {
-    class Item
+    public class Item
     {
         public string Title { get; set; }
         public string Url { get; set; }
