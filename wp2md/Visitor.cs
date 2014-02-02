@@ -70,13 +70,14 @@ namespace wp2md
             writer.WriteLine("---"); // Start header
 
             writer.WriteLine("title: {0}", item.Title);
+            writer.WriteLine("published: {0}", item.PostDate > DateTime.MinValue ? item.PostDate.ToShortDateString() : "draft");
             writer.WriteLine("layout: {0}", item.PostType);
 
             string[] categories = item.Categories.ToArray();
             var joined = string.Join(",", categories);
             writer.WriteLine("category: {0}", joined);
 
-            writer.WriteLine("metadescription: {0}", item.PostName);
+            writer.WriteLine("metadescription: {0}", string.IsNullOrEmpty(item.PostName) ? item.Title : item.PostName);
 
             writer.WriteLine("---"); // End header
         }
