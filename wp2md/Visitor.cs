@@ -51,7 +51,9 @@ namespace wp2md
 
             // year-month-day-title
             var template = "{0}-{1}-{2}-{3}";
-            var formatted = string.Format(template, item.PostDate.Year, item.PostDate.Month, item.PostDate.Day, title);
+            var month = item.PostDate.Month < 10 ? string.Format("0{0}", item.PostDate.Month) : item.PostDate.Month.ToString();
+            var day = item.PostDate.Day < 10 ? string.Format("0{0}", item.PostDate.Day) : item.PostDate.Day.ToString();
+            var formatted = string.Format(template, item.PostDate.Year, month, day, title);
             return Path.ChangeExtension(Path.Combine(_options.OutputPath, formatted), ".md");
         }
 
